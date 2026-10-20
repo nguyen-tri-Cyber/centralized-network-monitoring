@@ -1,0 +1,30 @@
+# Environment and Secrets
+.env
+**/.env
+local-accounts.json
+**/local-accounts.json
+*.key
+*.pem
+
+
+# Logs and Runtime State
+*.log
+output/
+backups/
+dist/
+
+# Python Cache & Testing Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor & OS Metadata
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
