@@ -1,0 +1,79 @@
+groups:
+  - name: snmp_alerts
+    rules:
+      - alert: SNMPTargetDown
+        expr: up{job="snmp"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: network
+        annotations:
+          summary: "SNMP target {{ $labels.instance }} is unreachable"
+          description: "Prometheus SNMP exporter failed to scrape target {{ $labels.instance }} for more than 1 minute. Verify network path and SNMP daemon availability."
+
+      - alert: SNMPExporterDown
+        expr: up{job="snmp_exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "SNMP Exporter service is down"
+          description: "Prometheus cannot scrape snmp-exporter:9116. The exporter daemon container may have crashed or stopped."
+
+      - alert: NetworkInterfaceDown
+        expr: ifOperStatus{job="snmp"} != 1
+        for: 2m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Interface {{ $labels.ifDescr }} is down on {{ $labels.instance }}"
+          description: "Interface {{ $labels.ifDescr }} (index {{ $labels.ifIndex }}) on device {{ $labels.instance }} has been in operational status {{ $value }} (non-UP) for more than 2 minutes."
+
+      - alert: HighInterfaceUtilization
+        expr: |
+          (
+            (rate(ifHCInOctets{job="snmp"}[5m]) * 8) / (ifHighSpeed{job="snmp"} * 1000000 > 0) > 0.80
+          ) or (
+            (rate(ifHCOutOctets{job="snmp"}[5m]) * 8) / (ifHighSpeed{job="snmp"} * 1000000 > 0) > 0.80
+          )
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "High interface bandwidth utilization on {{ $labels.instance }} ({{ $labels.ifDescr }})"
+          description: "Traffic throughput on interface {{ $labels.ifDescr }} exceeds 80% of interface rated capacity for more than 5 minutes."
+
+      - alert: InterfaceErrorsDetected
+        expr: |
+          (rate(ifInErrors{job="snmp"}[5m]) > 0) or (rate(ifOutErrors{job="snmp"}[5m]) > 0)
+        for: 3m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Interface errors detected on {{ $labels.instance }} ({{ $labels.ifDescr }})"
+          description: "Interface {{ $labels.ifDescr }} on {{ $labels.instance }} is experiencing packet frame errors at rate > 0/s."
+
+      - alert: InterfaceDiscardsDetected
+        expr: |
+          (rate(ifInDiscards{job="snmp"}[5m]) > 0) or (rate(ifOutDiscards{job="snmp"}[5m]) > 0)
+        for: 3m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Interface discards detected on {{ $labels.instance }} ({{ $labels.ifDescr }})"
+          description: "Interface {{ $labels.ifDescr }} on {{ $labels.instance }} is dropping packets due to buffer exhaustion or queue congestion."
+
+      - alert: HighSNMPScrapeDuration
+        expr: snmp_scrape_duration_seconds > 5
+        for: 3m
+        labels:
+          severity: warning
+          category: latency
+        annotations:
+          summary: "High SNMP scrape latency for {{ $labels.instance }}"
+          description: "SNMP walk scrape duration for {{ $labels.instance }} is {{ $value }}s (> 5s threshold), indicating high target CPU load or high network latency."

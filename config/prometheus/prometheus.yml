@@ -1,0 +1,50 @@
+# Global configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+# Alertmanager integration
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+# Load alerting and recording rules
+rule_files:
+  - "/etc/prometheus/alert.rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # SNMP Exporter service metrics (exporter health & HTTP endpoint metrics)
+  - job_name: "snmp_exporter"
+    static_configs:
+      - targets: ["snmp-exporter:9116"]
+
+  # SNMP Network Device monitoring via snmp_exporter
+  - job_name: "snmp"
+    metrics_path: /snmp
+    params:
+      module: [if_mib]
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - "snmp-simulator:161"
+        labels:
+          device_type: "router"
+          environment: "lab"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp-exporter:9116
