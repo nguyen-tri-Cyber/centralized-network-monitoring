@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use or reference this software and research artifact, please cite it as below."
+title: "Centralized Network Monitoring System"
+abstract: "An open-source, reproducible centralized network monitoring system using SNMP, Prometheus, and Grafana for undergraduate thesis evaluation."
+type: software
+authors:
+  - family-names: "Nguyen"
+    given-names: "Thanh Tri"
+    orcid: "https://orcid.org/0009-0006-2800-2798"
+    affiliation: "University of Transport Ho Chi Minh City"
+repository-code: "https://github.com/nguyen-tri-Cyber/centralized-network-monitoring"
+
+keywords:
+  - "network monitoring"
+  - "snmp"
+  - "prometheus"
+  - "grafana"
+  - "network observability"
+  - "anomaly detection"
+  - "undergraduate thesis"
+license: "MIT"
+version: "1.0.0"
+date-released: "2026-10-20"
