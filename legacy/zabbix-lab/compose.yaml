@@ -1,0 +1,108 @@
+name: a1-monitoring-lab
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD:?Run setup.ps1 first}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - lab
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.4-latest
+    restart: unless-stopped
+    init: true
+    environment:
+      DB_SERVER_HOST: db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD:?Run setup.ps1 first}
+      ZBX_STARTPINGERS: "2"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - lab
+
+  web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4-latest
+    restart: unless-stopped
+    environment:
+      DB_SERVER_HOST: db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD:?Run setup.ps1 first}
+      ZBX_SERVER_HOST: zabbix-server
+      PHP_TZ: Asia/Bangkok
+    depends_on:
+      db:
+        condition: service_healthy
+      zabbix-server:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    networks:
+      - lab
+
+  lab-agent:
+    image: zabbix/zabbix-agent2:alpine-7.4-latest
+    restart: unless-stopped
+    environment:
+      ZBX_HOSTNAME: lab-linux-agent
+      ZBX_SERVER_HOST: zabbix-server
+    depends_on:
+      - zabbix-server
+    networks:
+      - lab
+
+  lab-snmp:
+    build: ./lab-snmp
+    restart: unless-stopped
+    environment:
+      SNMP_COMMUNITY: ${SNMP_COMMUNITY:?Run setup.ps1 first}
+    networks:
+      - lab
+
+  lab-endpoint:
+    build: ./lab-endpoint
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    networks:
+      lab:
+        ipv4_address: ${LAB_ENDPOINT_IP:-172.30.250.50}
+
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks:
+      - lab
+
+volumes:
+  db_data:
+
+networks:
+  lab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${LAB_SUBNET:-172.30.250.0/24}

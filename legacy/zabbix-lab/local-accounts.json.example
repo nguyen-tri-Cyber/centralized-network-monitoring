@@ -1,0 +1,5 @@
+{
+  "a1-operator": "replace-with-random-password",
+  "a1-viewer": "replace-with-random-password",
+  "Admin": "replace-with-random-password"
+}
